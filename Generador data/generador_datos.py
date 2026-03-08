@@ -774,7 +774,7 @@ def main() -> None:
 	fake = Faker("es_ES")
 	Faker.seed(args.seed)
 
-	mongo_uri = "mongodb+srv://angel:angel18@basesdedatos2.0l9vfjv.mongodb.net/?appName=BasesDeDatos2"
+	mongo_uri = os.getenv("MONGO_URI")
 	if not mongo_uri:
 		raise ValueError("La variable de entorno MONGO_URI es obligatoria.")
 
