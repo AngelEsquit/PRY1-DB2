@@ -1,0 +1,50 @@
+{
+  "configuracion": {
+    "db_name": "restaurantes_db",
+    "batch_size": 1000,
+    "seed": 42,
+    "drop_existing": false,
+    "objetivos": {
+      "restaurantes": 1000,
+      "usuarios": 5000,
+      "articulos_menu": 15000,
+      "ordenes": 60000,
+      "resenas": 50000
+    }
+  },
+  "fases": {
+    "restaurantes": {
+      "insertados": 1000,
+      "tiempo_segundos": 3.81
+    },
+    "usuarios": {
+      "insertados": 5000,
+      "tiempo_segundos": 13.97
+    },
+    "articulos_menu": {
+      "insertados": 15000,
+      "tiempo_segundos": 31.03
+    },
+    "ordenes": {
+      "insertados": 60000,
+      "tiempo_segundos": 159.18
+    },
+    "resenas": {
+      "insertados": 50000,
+      "tiempo_segundos": 141.89
+    },
+    "indices": {
+      "tiempo_segundos": 8.52
+    }
+  },
+  "conteos_finales": {
+    "restaurantes": 1000,
+    "usuarios": 5000,
+    "articulos_menu": 15000,
+    "ordenes": 60000,
+    "resenas": 50000
+  },
+  "validacion_min_50000": true,
+  "tiempo_total_segundos": 360.05,
+  "fecha_ejecucion": "2026-03-04T03:08:19.443458Z"
+}
