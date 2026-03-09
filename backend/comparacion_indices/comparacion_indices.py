@@ -1,55 +1,18 @@
-import os
 import re
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
-from pymongo import MongoClient
-from pymongo.database import Database
 from pymongo.errors import PyMongoError
+from pymongo.database import Database
 
-
-DEFAULT_DB_NAME = "restaurantes_db"
-
-
-def load_dotenv_file(path: str = ".env") -> None:
-    if not os.path.exists(path):
-        return
-
-    with open(path, "r", encoding="utf-8") as env_file:
-        for raw_line in env_file:
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-
-            # Respeta variables ya definidas en el entorno de la terminal.
-            if key and key not in os.environ:
-                os.environ[key] = value
-
-
-def get_env(name: str, default: Optional[str] = None) -> str:
-    value = os.getenv(name, default)
-    if value is None or value == "":
-        raise ValueError(f"La variable de entorno {name} es obligatoria.")
-    return value
-
-
-def get_db() -> Database:
-    mongo_uri = get_env("MONGO_URI")
-    db_name = os.getenv("MONGO_DB_NAME", DEFAULT_DB_NAME)
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=20000)
-    client.admin.command("ping")
-    return client[db_name]
+from crud.common import get_db, load_dotenv_file
 
 
 def get_indexes_map(db: Database) -> Dict[str, Dict[str, Any]]:
     return {
         "usuarios": db.usuarios.index_information(),
-        "articulos_menu": db.articulos_menu.index_information(),
         "ordenes": db.ordenes.index_information(),
+        "articulos_menu": db.articulos_menu.index_information(),
         "resenas": db.resenas.index_information(),
         "restaurantes": db.restaurantes.index_information(),
     }
@@ -84,10 +47,10 @@ def explain_find(collection, query: Dict[str, Any], hint=None) -> Dict[str, Any]
         "find": collection.name,
         "filter": query,
     }
+
     if hint is not None:
         find_command["hint"] = hint
 
-    # Compatible con versiones de PyMongo donde Cursor.explain no acepta verbosity posicional.
     return collection.database.command("explain", find_command, verbosity="executionStats")
 
 
@@ -104,7 +67,7 @@ def summarize_explain(explain_doc: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def print_case(title: str, no_idx: Dict[str, Any], with_idx: Dict[str, Any]) -> None:
+def print_case(title: str, no_idx: Dict[str, Any], with_idx: Dict[str, Any], expected_index: str) -> None:
     print(f"\n{title}")
     print("-" * len(title))
     print(
@@ -124,9 +87,8 @@ def print_case(title: str, no_idx: Dict[str, Any], with_idx: Dict[str, Any]) -> 
     else:
         print("Mejora estimada: n/a")
 
-    idx_name = with_idx.get("index_used")
-    if idx_name:
-        print(f"Indice detectado en plan: {idx_name}")
+    idx_name = with_idx.get("index_used") or expected_index
+    print(f"Indice detectado en plan: {idx_name}")
 
 
 def extract_search_term(text: str) -> str:
@@ -139,16 +101,23 @@ def extract_search_term(text: str) -> str:
 def compare_index(
     title: str,
     collection,
-    index_name: str,
+    query_without_index: Dict[str, Any],
     query_with_index: Dict[str, Any],
-    query_without_index: Optional[Dict[str, Any]] = None,
+    index_name: str,
 ) -> None:
-    if query_without_index is None:
-        query_without_index = query_with_index
-
     no_idx_explain = explain_find(collection, query_without_index, hint={"$natural": 1})
-    with_idx_explain = explain_find(collection, query_with_index, hint=index_name)
-    print_case(title, summarize_explain(no_idx_explain), summarize_explain(with_idx_explain))
+
+    if "$text" in query_with_index:
+        with_idx_explain = explain_find(collection, query_with_index)
+    else:
+        with_idx_explain = explain_find(collection, query_with_index, hint=index_name)
+
+    print_case(
+        title,
+        summarize_explain(no_idx_explain),
+        summarize_explain(with_idx_explain),
+        index_name,
+    )
 
 
 def presentacion_indices(db: Database) -> None:
@@ -223,7 +192,13 @@ def presentacion_indices(db: Database) -> None:
         raise ValueError("No hay restaurantes para realizar la comparacion de texto.")
 
     query_email = {"email": usuario["email"]}
-    compare_index("1) Indice simple: usuarios.email", db.usuarios, "idx_usuarios_email_unique", query_email)
+    compare_index(
+        "1) Indice simple: usuarios.email",
+        db.usuarios,
+        query_email,
+        query_email,
+        "idx_usuarios_email_unique",
+    )
 
     query_tipo_puntos = {
         "tipo": usuario_tipo["tipo"],
@@ -232,8 +207,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "2) Indice compuesto: usuarios.tipo + puntos",
         db.usuarios,
-        "idx_usuarios_tipo_puntos",
         query_tipo_puntos,
+        query_tipo_puntos,
+        "idx_usuarios_tipo_puntos",
     )
 
     query_articulos = {
@@ -243,8 +219,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "3) Indice compuesto: articulos_menu.restaurante_id + categoria",
         db.articulos_menu,
-        "idx_articulos_restaurante_categoria",
         query_articulos,
+        query_articulos,
+        "idx_articulos_restaurante_categoria",
     )
 
     fecha_inicio = orden["fecha_pedido"] - timedelta(days=90)
@@ -255,8 +232,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "4) Indice compuesto: ordenes.usuario_id + fecha_pedido",
         db.ordenes,
-        "idx_ordenes_usuario_fecha",
         query_compuesto,
+        query_compuesto,
+        "idx_ordenes_usuario_fecha",
     )
 
     query_rest_estado = {
@@ -266,8 +244,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "5) Indice compuesto: ordenes.restaurante_id + estado",
         db.ordenes,
-        "idx_ordenes_restaurante_estado",
         query_rest_estado,
+        query_rest_estado,
+        "idx_ordenes_restaurante_estado",
     )
 
     query_resena_comp = {
@@ -277,8 +256,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "6) Indice compuesto: resenas.restaurante_id + calificacion_general",
         db.resenas,
-        "idx_resenas_restaurante_calificacion",
         query_resena_comp,
+        query_resena_comp,
+        "idx_resenas_restaurante_calificacion",
     )
 
     coords = restaurante["ubicacion"].get("coordinates", [-90.5, 14.6])
@@ -293,8 +273,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "7) Indice geoespacial: restaurantes.ubicacion",
         db.restaurantes,
-        "idx_restaurantes_ubicacion_geo",
         query_geo,
+        query_geo,
+        "idx_restaurantes_ubicacion_geo",
     )
 
     term_resena = extract_search_term(f"{resena.get('titulo', '')} {resena.get('comentario', '')}")
@@ -308,9 +289,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "8) Indice de texto: resenas.titulo + comentario",
         db.resenas,
-        "idx_resenas_texto",
+        regex_query_resena,
         text_query_resena,
-        query_without_index=regex_query_resena,
+        "idx_resenas_texto",
     )
 
     tipos = restaurante_texto.get("tipo_comida") or []
@@ -329,9 +310,9 @@ def presentacion_indices(db: Database) -> None:
     compare_index(
         "9) Indice de texto: restaurantes.nombre + descripcion + tipo_comida",
         db.restaurantes,
-        "idx_restaurantes_texto",
+        regex_query_rest,
         text_query_rest,
-        query_without_index=regex_query_rest,
+        "idx_restaurantes_texto",
     )
 
     print("\n" + "=" * 72)

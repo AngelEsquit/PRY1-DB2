@@ -1,6 +1,7 @@
 import os
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Optional
+from dotenv import load_dotenv
 
 from bson import Decimal128, ObjectId
 from pymongo import MongoClient
@@ -28,6 +29,12 @@ ORDER_STATE_TRANSITIONS = {
     "cancelado": {"archivada"},
     "archivada": set(),
 }
+
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGO_URI")
+client = MongoClient(MONGO_URI)
+db = client["restaurantes_db"]
 
 
 def load_dotenv_file(path: str = ".env") -> None:
