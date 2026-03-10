@@ -41,7 +41,7 @@ def crear_restaurante(datos_restaurante: Dict[str, Any], db: Optional[Database] 
         "tipo_comida": list(datos_restaurante.get("tipo_comida", [])),
         "direccion": direccion,
         "ubicacion": datos_restaurante["ubicacion"],
-        "horario": datos_restaurante["horario"],
+        "horario": [],
         "telefono": datos_restaurante["telefono"],
         "email": datos_restaurante["email"],
         "fecha_registro": datetime.utcnow(),

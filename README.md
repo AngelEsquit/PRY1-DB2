@@ -93,21 +93,47 @@ PRY1-DB2/
 
 Instalar dependencias de Python:
 
-```
-
+```bash
 pip install -r requirements.txt
-
 ```
 
-Contenido del archivo:
+Activar entorno virtual en Windows (recomendado):
 
+```powershell
+.\.venv\Scripts\Activate.ps1
 ```
 
+Ejecutar API (opcion 1, recomendado):
+
+```bash
+cd backend
+python -m uvicorn api.app:app --reload
+```
+
+Ejecutar API desde la raiz del repo (opcion 2):
+
+```bash
+python -m uvicorn api.app:app --reload --app-dir backend
+```
+
+Si tu terminal usa otro Python global y aparece `Form data requires "python-multipart" to be installed`, ejecuta Uvicorn con el Python del proyecto:
+
+```powershell
+C:/Users/miafu/Downloads/PRY1-DB2/.venv/Scripts/python.exe -m uvicorn api.app:app --reload --app-dir backend
+```
+
+Si ejecutas `uvicorn api.app:app --reload` desde la raiz sin `--app-dir backend`, aparecera el error `ModuleNotFoundError: No module named 'api'`.
+
+Dependencias principales:
+
+```txt
 pymongo>=4.6.0
 dnspython>=2.6.1
 Faker>=24.0.0
 python-dotenv
-
+fastapi
+uvicorn
+python-multipart
 ```
 
 ---
@@ -119,6 +145,8 @@ Entrar a la carpeta del frontend:
 ```
 
 cd Frontend/MesaLista
+npm install
+npm run dev
 
 ```
 

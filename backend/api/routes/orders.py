@@ -2,17 +2,21 @@ from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 
 from crud.common import db
+from crud.update import cambiar_estado_orden
 from transactions.transactions import crear_orden_y_actualizar_puntos
-from api.schemas import OrderCreate
+from api.schemas import OrderCreate, UpdateStatusRequest
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 @router.get("/")
-def get_orders():
+def get_orders(estado: str | None = None):
+    filtro = {}
+    if estado:
+        filtro["estado"] = estado
     ordenes = list(
         db.ordenes.find(
-            {},
+            filtro,
             {
                 "usuario_id": 1,
                 "restaurante_id": 1,
@@ -24,9 +28,18 @@ def get_orders():
     )
 
     for o in ordenes:
+        usuario = db.usuarios.find_one({"_id": o.get("usuario_id")}, {"nombre": 1, "apellido": 1})
+        restaurante = db.restaurantes.find_one({"_id": o.get("restaurante_id")}, {"nombre": 1})
+
         o["_id"] = str(o["_id"])
         o["usuario_id"] = str(o["usuario_id"])
         o["restaurante_id"] = str(o["restaurante_id"])
+        o["usuario_nombre"] = (
+            f"{usuario.get('nombre', '')} {usuario.get('apellido', '')}".strip()
+            if usuario
+            else "Usuario"
+        )
+        o["restaurante_nombre"] = restaurante.get("nombre") if restaurante else "Restaurante"
         if "total" in o:
             o["total"] = str(o["total"])
 
@@ -47,6 +60,15 @@ def get_order_detail(order_id: str):
     orden["_id"] = str(orden["_id"])
     orden["usuario_id"] = str(orden["usuario_id"])
     orden["restaurante_id"] = str(orden["restaurante_id"])
+
+    usuario = db.usuarios.find_one({"_id": ObjectId(orden["usuario_id"])}, {"nombre": 1, "apellido": 1})
+    restaurante = db.restaurantes.find_one({"_id": ObjectId(orden["restaurante_id"])}, {"nombre": 1})
+    orden["usuario_nombre"] = (
+        f"{usuario.get('nombre', '')} {usuario.get('apellido', '')}".strip()
+        if usuario
+        else "Usuario"
+    )
+    orden["restaurante_nombre"] = restaurante.get("nombre") if restaurante else "Restaurante"
 
     if "total" in orden:
         orden["total"] = str(orden["total"])
@@ -85,3 +107,18 @@ def create_order(payload: OrderCreate):
         return resultado
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.patch("/{order_id}/status")
+def update_order_status(order_id: str, payload: UpdateStatusRequest):
+    try:
+        count = cambiar_estado_orden(ObjectId(order_id), payload.nuevo_estado, db=db)
+        if count == 0:
+            raise HTTPException(status_code=404, detail="Orden no encontrada o transición inválida")
+        return {"message": f"Estado actualizado a '{payload.nuevo_estado}'", "modified": count}
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,43 +1,85 @@
-import { useState } from "react";
-import { useReviews } from "../context/ReviewContext";
+import { useEffect, useState } from "react";
+import { createReview, fetchUsers } from "../services/api";
 
-function ReviewForm({ restaurant }) {
-  const { addReview } = useReviews();
-  const [user, setUser] = useState("");
+function ReviewForm({ restaurant, onReviewCreated }) {
+  const [usuarioId, setUsuarioId] = useState("");
+  const [titulo, setTitulo] = useState("");
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const data = await fetchUsers();
+        setUsers(data);
+      } catch {
+        setUsers([]);
+      }
+    }
+
+    loadUsers();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!user.trim() || !comment.trim()) {
+    if (!usuarioId.trim() || !titulo.trim() || !comment.trim()) {
       alert("Completa todos los campos");
       return;
     }
 
-    addReview({
-      user,
-      restaurant: restaurant.name,
-      restaurantId: restaurant.id,
-      comment,
-      rating: Number(rating),
-    });
+    try {
+      setLoading(true);
 
-    setUser("");
-    setComment("");
-    setRating(5);
-    alert("Reseña agregada");
+      await createReview({
+        usuario_id: usuarioId,
+        restaurante_id: restaurant.id,
+        calificacion: Number(rating),
+        titulo,
+        comentario: comment,
+      });
+
+      setUsuarioId("");
+      setTitulo("");
+      setComment("");
+      setRating(5);
+
+      if (onReviewCreated) {
+        onReviewCreated();
+      }
+
+      alert("Reseña agregada con éxito");
+    } catch (err) {
+      alert(err.message || "No se pudo crear la reseña");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form className="review-form" onSubmit={handleSubmit}>
       <h3>Crear reseña</h3>
 
+      <select
+        value={usuarioId}
+        onChange={(e) => setUsuarioId(e.target.value)}
+        className="form-input"
+      >
+        <option value="">Selecciona un usuario</option>
+        {users.map((user) => (
+          <option key={user._id} value={user._id}>
+            {user.nombre} {user.apellido} ({user.email})
+          </option>
+        ))}
+      </select>
+
       <input
         type="text"
-        placeholder="Tu nombre"
-        value={user}
-        onChange={(e) => setUser(e.target.value)}
+        placeholder="Título de la reseña"
+        value={titulo}
+        onChange={(e) => setTitulo(e.target.value)}
         className="form-input"
       />
 
@@ -60,8 +102,8 @@ function ReviewForm({ restaurant }) {
         className="form-input form-textarea"
       />
 
-      <button type="submit" className="btn btn-primary">
-        Publicar reseña
+      <button type="submit" className="btn btn-primary" disabled={loading}>
+        {loading ? "Publicando..." : "Publicar reseña"}
       </button>
     </form>
   );

@@ -1,9 +1,19 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+
+const DB_LINKS = [
+  { to: "/admin", label: "Admin CRUD" },
+  { to: "/arrays", label: "Arrays" },
+  { to: "/transactions", label: "Transacciones" },
+  { to: "/gridfs", label: "GridFS" },
+  { to: "/indices", label: "Índices" },
+];
 
 function Navbar() {
   const navigate = useNavigate();
   const { itemCount } = useCart();
+  const [dbOpen, setDbOpen] = useState(false);
 
   return (
     <header className="navbar">
@@ -48,6 +58,42 @@ function Navbar() {
           >
             Reseñas
           </NavLink>
+
+          <NavLink
+            to="/reports"
+            className={({ isActive }) =>
+              isActive ? "nav-link active-link" : "nav-link"
+            }
+          >
+            Reportes
+          </NavLink>
+
+          {/* DB Demo dropdown */}
+          <div
+            className="nav-dropdown"
+            onMouseEnter={() => setDbOpen(true)}
+            onMouseLeave={() => setDbOpen(false)}
+          >
+            <button className="nav-link nav-dropdown-btn">
+              DB Demo ▾
+            </button>
+            {dbOpen && (
+              <div className="dropdown-menu">
+                {DB_LINKS.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    className={({ isActive }) =>
+                      isActive ? "dropdown-item active-link" : "dropdown-item"
+                    }
+                    onClick={() => setDbOpen(false)}
+                  >
+                    {link.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="nav-right">

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 
 
@@ -24,3 +24,48 @@ class OrderCreate(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+# ── CRUD schemas ──────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    telefono: str
+    ciudad: str = "Guatemala"
+
+
+class RestaurantCreate(BaseModel):
+    nombre: str
+    descripcion: str
+    tipo_comida: List[str]
+    telefono: str
+    email: str
+    ciudad: str = "Guatemala"
+
+
+class MenuItemCreate(BaseModel):
+    nombre: str
+    descripcion: str
+    categoria: str
+    precio: float = Field(gt=0)
+    ingredientes: List[str] = []
+    opciones_personalizacion: List[str] = []
+    tiempo_preparacion: int = Field(default=15, ge=1)
+
+
+class UpdateEmailRequest(BaseModel):
+    nuevo_email: str
+
+
+class UpdatePhoneRequest(BaseModel):
+    nuevo_telefono: str
+
+
+class UpdatePriceRequest(BaseModel):
+    nuevo_precio: float = Field(gt=0)
+
+
+class UpdateStatusRequest(BaseModel):
+    nuevo_estado: str

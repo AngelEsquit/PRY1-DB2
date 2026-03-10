@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
+import { createOrder, fetchUsers } from "../services/api";
 
 function CartPage() {
   const {
@@ -10,6 +12,74 @@ function CartPage() {
     clearCart,
     total,
   } = useCart();
+
+  const [usuarioId, setUsuarioId] = useState("");
+  const [metodoPago, setMetodoPago] = useState("efectivo");
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const data = await fetchUsers();
+        setUsers(data);
+      } catch {
+        setUsers([]);
+      }
+    }
+
+    loadUsers();
+  }, []);
+
+  const handleConfirmOrder = async () => {
+    if (cartItems.length === 0) {
+      alert("Tu carrito está vacío");
+      return;
+    }
+
+    if (!usuarioId.trim()) {
+      alert("Debes ingresar el ID del usuario");
+      return;
+    }
+
+    const restaurantId = cartItems[0]?.restaurantId;
+
+    const hayDistintosRestaurantes = cartItems.some(
+      (item) => item.restaurantId !== restaurantId
+    );
+
+    if (hayDistintosRestaurantes) {
+      alert("Por ahora solo puedes crear una orden con productos de un mismo restaurante");
+      return;
+    }
+
+    const payload = {
+      usuario_id: usuarioId,
+      restaurante_id: restaurantId,
+      metodo_pago: metodoPago,
+      items: cartItems.map((item) => ({
+        articulo_id: item.id,
+        cantidad: item.quantity,
+      })),
+    };
+
+    try {
+      setLoading(true);
+      const response = await createOrder(payload);
+
+      alert(
+        `Orden creada con éxito.\nID Orden: ${response.orden_id}\nTotal: Q${response.total}`
+      );
+
+      clearCart();
+      setUsuarioId("");
+      setMetodoPago("efectivo");
+    } catch (err) {
+      alert(err.message || "No se pudo crear la orden");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -34,22 +104,28 @@ function CartPage() {
                   <div>
                     <h3>{item.name}</h3>
                     <p>{item.restaurantName}</p>
-                    <p>Q{item.price.toFixed(2)}</p>
+                    <p>Q{Number(item.price).toFixed(2)}</p>
                   </div>
 
                   <div className="cart-controls">
-                    <button className="cart-btn" onClick={() => decreaseQuantity(item.id)}>
+                    <button
+                      className="cart-btn"
+                      onClick={() => decreaseQuantity(item.id)}
+                    >
                       -
                     </button>
                     <span>{item.quantity}</span>
-                    <button className="cart-btn" onClick={() => increaseQuantity(item.id)}>
+                    <button
+                      className="cart-btn"
+                      onClick={() => increaseQuantity(item.id)}
+                    >
                       +
                     </button>
                   </div>
 
                   <div>
                     <p className="order-total">
-                      Q{(item.price * item.quantity).toFixed(2)}
+                      Q{(Number(item.price) * item.quantity).toFixed(2)}
                     </p>
                     <button
                       className="btn btn-light"
@@ -64,17 +140,40 @@ function CartPage() {
 
             <div className="cart-summary">
               <h3>Resumen</h3>
+
+              <label className="cart-label">Usuario</label>
+              <select
+                className="form-input"
+                value={usuarioId}
+                onChange={(e) => setUsuarioId(e.target.value)}
+              >
+                <option value="">Selecciona un usuario</option>
+                {users.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.nombre} {user.apellido} ({user.email})
+                  </option>
+                ))}
+              </select>
+
+              <label className="cart-label">Método de pago</label>
+              <select
+                className="form-input"
+                value={metodoPago}
+                onChange={(e) => setMetodoPago(e.target.value)}
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+              </select>
+
               <p>Total de la orden:</p>
-              <h2>Q{total.toFixed(2)}</h2>
+              <h2>Q{Number(total).toFixed(2)}</h2>
 
               <button
                 className="btn btn-primary full-width"
-                onClick={() => {
-                  alert("Orden creada con éxito");
-                  clearCart();
-                }}
+                onClick={handleConfirmOrder}
+                disabled={loading}
               >
-                Confirmar Orden
+                {loading ? "Creando orden..." : "Confirmar Orden"}
               </button>
             </div>
           </>

@@ -1,5 +1,6 @@
 import os
 from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
 from typing import Any, Optional
 from dotenv import load_dotenv
 
@@ -30,14 +31,16 @@ ORDER_STATE_TRANSITIONS = {
     "archivada": set(),
 }
 
-load_dotenv()
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
 
 MONGO_URI = os.getenv("MONGO_URI")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", DEFAULT_DB_NAME)
 client = MongoClient(MONGO_URI)
-db = client["restaurantes_db"]
+db = client[MONGO_DB_NAME]
 
 
-def load_dotenv_file(path: str = ".env") -> None:
+def load_dotenv_file(path: str = str(ENV_PATH)) -> None:
     if not os.path.exists(path):
         return
 

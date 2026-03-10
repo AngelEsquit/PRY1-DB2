@@ -43,7 +43,14 @@ def eliminar_preferencia_usuario(usuario_id, preferencia):
 def agregar_horario_restaurante(restaurante_id, nuevo_horario):
     """
     Agrega un horario al array horario usando $push.
+    Primero convierte el campo a array si es necesario (migración).
     """
+    # Migración: si horario es un objeto, conviértelo a array
+    db.restaurantes.update_one(
+        {"_id": restaurante_id, "horario": {"$type": "object"}},
+        {"$set": {"horario": []}}
+    )
+    
     resultado = db.restaurantes.update_one(
         {"_id": restaurante_id},
         {

@@ -1,9 +1,30 @@
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import { orders } from "../data/mockData";
+import { fetchOrders } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 function Orders() {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadOrders() {
+      try {
+        setLoading(true);
+        const data = await fetchOrders();
+        setOrders(data);
+        setError("");
+      } catch (err) {
+        setError(err.message || "No se pudieron cargar las órdenes");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadOrders();
+  }, []);
 
   return (
     <>
@@ -15,26 +36,37 @@ function Orders() {
       </section>
 
       <section className="container orders-list page-section">
-        {orders.map((order) => (
-          <article key={order.id} className="order-card">
-            <div>
-              <h3>{order.restaurant}</h3>
-              <p>Fecha: {order.date}</p>
-            </div>
+        {loading && <p>Cargando órdenes...</p>}
+        {error && <p className="error-text">{error}</p>}
 
-            <div>
-              <p className="order-status">{order.status}</p>
-              <p className="order-total">Q{order.total.toFixed(2)}</p>
-            </div>
+        {!loading &&
+          !error &&
+          orders.map((order) => (
+            <article key={order._id} className="order-card">
+              <div>
+                <h3>Restaurante: {order.restaurante_nombre || order.restaurante_id}</h3>
+                <p>Cliente: {order.usuario_nombre || order.usuario_id}</p>
+                <p>
+                  Fecha:{" "}
+                  {order.fecha_pedido
+                    ? new Date(order.fecha_pedido).toLocaleDateString()
+                    : "No disponible"}
+                </p>
+              </div>
 
-            <button
-              className="btn btn-accent"
-              onClick={() => navigate(`/orders/${order.id}`)}
-            >
-              Ver Detalle
-            </button>
-          </article>
-        ))}
+              <div>
+                <p className="order-status">{order.estado}</p>
+                <p className="order-total">Q{order.total}</p>
+              </div>
+
+              <button
+                className="btn btn-accent"
+                onClick={() => navigate(`/orders/${order._id}`)}
+              >
+                Ver Detalle
+              </button>
+            </article>
+          ))}
       </section>
     </>
   );
