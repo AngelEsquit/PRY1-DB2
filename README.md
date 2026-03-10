@@ -1,332 +1,117 @@
-
 # Proyecto 1 - Base de Datos 2
-## Sistema de Gestión de Pedidos y Reseñas de Restaurantes (MesaLista)
+## MesaLista: Sistema de Gestion de Pedidos y Resenas
 
-Este proyecto fue desarrollado como parte del curso **Base de Datos 2**.  
-El objetivo es diseñar e implementar un sistema basado en **MongoDB** para la gestión de restaurantes, pedidos y reseñas, aplicando principios de modelado documental, agregaciones, índices y escalabilidad.
+Aplicacion fullstack para gestionar restaurantes, menu, ordenes, usuarios y resenas sobre MongoDB.
 
-El sistema incluye una propuesta de interfaz llamada **MesaLista**, desarrollada con **React + Vite**, que permite visualizar y simular las operaciones principales del sistema.
+## Integrantes
+- Angel Esteban Esquit Hernandez - 23221
+- Anggelie Lizeth Velasquez Asencio - 221181
+- Mia Alejandra Fuentes Merida - 23775
 
----
+## Stack
+- Backend: FastAPI, PyMongo, Python
+- Base de datos: MongoDB Atlas
+- Frontend: React + Vite
 
-# Integrantes
-
-- **Angel Esteban Esquit Hernández** – 23221  
-- **Anggelie Lizeth Velásquez Asencio** – 221181  
-- **Mia Alejandra Fuentes Mérida** – 23775  
-
----
-
-# Objetivo del proyecto
-
-Diseñar un sistema completo para la gestión de restaurantes utilizando MongoDB que permita:
-
-- Registrar restaurantes
-- Administrar artículos de menú
-- Gestionar usuarios
-- Crear y consultar órdenes
-- Registrar reseñas
-- Analizar datos mediante agregaciones
-- Optimizar consultas con índices
-- Diseñar una estrategia de escalabilidad
+## Estructura minima
+- `backend/` API FastAPI y logica MongoDB
+- `Frontend/MesaLista/` app React
+- `requirements.txt` dependencias backend
 
 ---
 
-# Tecnologías utilizadas
-
-## Backend / Base de datos
-
-- MongoDB Atlas
-- Python
-- PyMongo
-- Faker
-- python-dotenv
-
-## Frontend
-
-- React
-- Vite
-- React Router
-- CSS
+## Requisitos
+- Python 3.11+
+- Node.js 18+
+- npm
+- Acceso a MongoDB (Atlas o local)
 
 ---
 
-# Estructura del proyecto
+## Configuracion del backend
 
-```
-
-PRY1-DB2/
-│
-├── crud/
-│   ├── create.py
-│   ├── read.py
-│   ├── update.py
-│   └── delete.py
-│
-├── Comparacion indices/
-│
-├── Frontend/
-│   └── MesaLista/
-│       ├── public/
-│       ├── src/
-│       │   ├── components/
-│       │   ├── context/
-│       │   ├── data/
-│       │   ├── pages/
-│       │   ├── styles/
-│       │   ├── App.jsx
-│       │   └── main.jsx
-│       ├── index.html
-│       ├── package.json
-│       └── vite.config.js
-│
-├── requirements.txt
-└── README.md
-
-```
-
----
-
-# Instalación de dependencias
-
-## Backend
-
-Instalar dependencias de Python:
-
-```bash
-pip install -r requirements.txt
-```
-
-Activar entorno virtual en Windows (recomendado):
-
+### 1) Crear y activar entorno virtual (Windows)
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Ejecutar API (opcion 1, recomendado):
+### 2) Instalar dependencias
+```powershell
+pip install -r requirements.txt
+```
 
-```bash
+### 3) Configurar variables de entorno
+Crear archivo `backend/.env` con:
+```env
+MONGO_URI = "mongodb+srv://user:123@basesdedatos2.0l9vfjv.mongodb.net/?appName=BasesDeDatos2"
+MONGO_DB_NAME = "restaurantes_db"
+```
+
+Importante:
+- El backend lee `backend/.env`.
+- Si `MONGO_URI` no es valido, la API no podra consultar datos.
+
+### 4) Ejecutar backend (recomendado desde raiz)
+```powershell
+python -m uvicorn api.app:app --reload --app-dir backend
+```
+
+Alternativa (si prefieres entrar a backend):
+```powershell
 cd backend
 python -m uvicorn api.app:app --reload
 ```
 
-Ejecutar API desde la raiz del repo (opcion 2):
-
-```bash
-python -m uvicorn api.app:app --reload --app-dir backend
-```
-
-Si tu terminal usa otro Python global y aparece `Form data requires "python-multipart" to be installed`, ejecuta Uvicorn con el Python del proyecto:
-
-```powershell
-C:/Users/miafu/Downloads/PRY1-DB2/.venv/Scripts/python.exe -m uvicorn api.app:app --reload --app-dir backend
-```
-
-Si ejecutas `uvicorn api.app:app --reload` desde la raiz sin `--app-dir backend`, aparecera el error `ModuleNotFoundError: No module named 'api'`.
-
-Dependencias principales:
-
-```txt
-pymongo>=4.6.0
-dnspython>=2.6.1
-Faker>=24.0.0
-python-dotenv
-fastapi
-uvicorn
-python-multipart
-```
+Backend en:
+- `http://127.0.0.1:8000`
+- Docs Swagger: `http://127.0.0.1:8000/docs`
 
 ---
 
-# Ejecución del frontend
+## Configuracion del frontend
 
-Entrar a la carpeta del frontend:
-
-```
-
+### 1) Instalar dependencias
+```powershell
 cd Frontend/MesaLista
 npm install
+```
+
+### 2) Ejecutar frontend
+```powershell
 npm run dev
-
 ```
 
-Instalar dependencias:
-
-```
-
-npm install
-
-```
-
-Ejecutar el servidor de desarrollo:
-
-```
-
-npm run dev
-
-```
-
-Abrir en el navegador:
-
-```
-
-[http://localhost:5173](http://localhost:5173)
-
-```
+Frontend en:
+- `http://localhost:5173`
 
 ---
 
-# Funcionalidades implementadas (Fase 1)
-
-El frontend actualmente simula las funcionalidades principales del sistema utilizando datos mock.
-
-## Navegación
-
-El sistema cuenta con las siguientes páginas:
-
-- Inicio
-- Restaurantes
-- Órdenes
-- Reseñas
-- Carrito
-
-## Funcionalidades disponibles
-
-### Restaurantes
-- Visualización de restaurantes
-- Búsqueda de restaurantes
-- Página de detalle de restaurante
-- Visualización del menú
-
-### Carrito
-- Agregar productos al carrito
-- Seleccionar cantidad mediante modal
-- Visualizar productos agregados
-- Calcular total del pedido
-
-### Órdenes
-- Visualización de órdenes simuladas
-- Detalle de órdenes
-
-### Reseñas
-- Visualización de reseñas
-- Sistema de estrellas
-- Formulario para crear reseñas
-
-### Interfaz
-- Navbar con navegación
-- Indicador de carrito
-- Modal para agregar productos
-- Diseño responsive básico
+## Orden recomendado para correr el proyecto
+1. Activar `.venv` e iniciar backend.
+2. En otra terminal, iniciar frontend.
+3. Abrir `http://localhost:5173`.
 
 ---
 
-# Modelado de datos en MongoDB
-
-El sistema considera las siguientes colecciones principales:
-
-- usuarios
-- restaurantes
-- menu_items
-- ordenes
-- reseñas
-
-## Estrategia de modelado
-
-Se utilizó una combinación de:
-
-### Embedding
-
-Para datos que se consultan juntos y deben conservarse históricamente.
-
-Ejemplo:
-
-```
-
-orden.items[]
-
-```
-
-### Referencing
-
-Para entidades reutilizables.
-
-Ejemplo:
-
-```
-
-orden.usuario_id
-orden.restaurante_id
-reseña.restaurante_id
-
-```
+## Endpoints utiles para validar rapido
+- `GET /` -> estado API
+- `GET /restaurants/` -> lista restaurantes
+- `GET /users/?tipo=premium` -> filtro por tipo
+- `GET /orders/?estado=pendiente` -> filtro por estado
 
 ---
 
-# Índices propuestos
+## Errores comunes y solucion
 
-El sistema contempla el uso de los siguientes índices:
+### Error: `Form data requires "python-multipart" to be installed`
+Instala dependencias dentro del `.venv` y ejecuta con ese Python.
 
-- Índice simple
-- Índice compuesto
-- Índice multikey
-- Índice geoespacial
-- Índice de texto
-
-Estos índices permiten optimizar consultas como:
-
-- búsqueda de restaurantes
-- consultas por usuario
-- órdenes por fecha
-- búsqueda por categoría
-- consultas geográficas
-
----
-
-# Aggregation Framework
-
-El proyecto contempla el uso de pipelines de agregación para obtener información analítica como:
-
-- platillos más vendidos
-- restaurantes mejor calificados
-- horas pico de pedidos
-- promedio de reseñas
-
----
-
-# Transacciones
-
-Se consideran transacciones para garantizar consistencia en operaciones como:
-
-- creación de órdenes
-- actualización de puntos del usuario
-- eliminación de usuarios y sus datos asociados
-
----
-
-# Escalabilidad
-
-La colección candidata para **sharding** es:
-
+### Error: `No module named 'api'`
+Estas corriendo desde raiz sin `--app-dir backend`.
+Usa:
+```powershell
+python -m uvicorn api.app:app --reload --app-dir backend
 ```
-
-ordenes
-
-```
-
-### Shard Key propuesta
-
-```
-
-{ restaurante_id: 1, fecha: -1 }
-
-```
-
-Esto permite:
-
-- distribuir carga de escritura
-- evitar hotspots
-- mejorar consultas por rango de fechas
-- escalar horizontalmente el sistema
 
 
