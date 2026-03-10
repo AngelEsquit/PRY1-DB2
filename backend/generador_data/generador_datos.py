@@ -246,6 +246,12 @@ def create_indexes(db: Database) -> None:
 		name="idx_restaurantes_ubicacion_geo",
 	)
 	with_retries(
+		"index restaurantes tipo_comida multikey",
+		db.restaurantes.create_index,
+		[("tipo_comida", ASCENDING)],
+		name="idx_restaurantes_tipo_comida_multikey",
+	)
+	with_retries(
 		"index restaurantes text",
 		db.restaurantes.create_index,
 		[("nombre", TEXT), ("descripcion", TEXT), ("tipo_comida", TEXT)],
@@ -284,6 +290,13 @@ def create_indexes(db: Database) -> None:
 		db.ordenes.create_index,
 		[("restaurante_id", ASCENDING), ("estado", ASCENDING)],
 		name="idx_ordenes_restaurante_estado",
+	)
+	with_retries(
+		"index ordenes activas parcial",
+		db.ordenes.create_index,
+		[("estado", ASCENDING), ("fecha_pedido", ASCENDING)],
+		name="idx_ordenes_activas_parcial",
+		partialFilterExpression={"estado": {"$in": ["pendiente", "confirmado", "en_preparacion", "en_camino", "entregado"]}},
 	)
 
 	with_retries(

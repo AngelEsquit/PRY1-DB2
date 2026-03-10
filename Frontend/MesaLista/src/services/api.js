@@ -10,7 +10,7 @@ export async function fetchRestaurantDetail(id) {
   const res = await fetch(`${API_URL}/restaurants/${id}`);
   if (!res.ok) throw new Error("Error al obtener detalle del restaurante");
   return res.json();
-}satisfie
+}
 
 export async function fetchOrders() {
   const res = await fetch(`${API_URL}/orders`);

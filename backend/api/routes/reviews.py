@@ -19,9 +19,9 @@ def get_reviews():
                 "titulo": 1,
                 "comentario": 1,
                 "calificacion_general": 1,
-                "fecha_resena": 1,
+                "fecha": 1,
             },
-        ).sort("fecha_resena", -1).limit(50)
+        ).sort("fecha", -1).limit(50)
     )
 
     for r in resenas:

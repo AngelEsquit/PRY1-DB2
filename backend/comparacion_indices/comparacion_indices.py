@@ -1,9 +1,15 @@
 import re
+import sys
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from pymongo.errors import PyMongoError
 from pymongo.database import Database
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from crud.common import get_db, load_dotenv_file
 
@@ -133,9 +139,11 @@ def presentacion_indices(db: Database) -> None:
         "articulos_menu": "idx_articulos_restaurante_categoria",
         "ordenes": "idx_ordenes_usuario_fecha",
         "ordenes_estado": "idx_ordenes_restaurante_estado",
+        "ordenes_activas": "idx_ordenes_activas_parcial",
         "resenas": "idx_resenas_restaurante_calificacion",
         "resenas_texto": "idx_resenas_texto",
         "restaurantes": "idx_restaurantes_ubicacion_geo",
+        "restaurantes_multikey": "idx_restaurantes_tipo_comida_multikey",
         "restaurantes_texto": "idx_restaurantes_texto",
     }
 
@@ -145,9 +153,11 @@ def presentacion_indices(db: Database) -> None:
         "articulos_menu": "articulos_menu",
         "ordenes": "ordenes",
         "ordenes_estado": "ordenes",
+        "ordenes_activas": "ordenes",
         "resenas": "resenas",
         "resenas_texto": "resenas",
         "restaurantes": "restaurantes",
+        "restaurantes_multikey": "restaurantes",
         "restaurantes_texto": "restaurantes",
     }
 
@@ -190,6 +200,9 @@ def presentacion_indices(db: Database) -> None:
     restaurante_texto = db.restaurantes.find_one({}, {"nombre": 1, "descripcion": 1, "tipo_comida": 1})
     if not restaurante_texto:
         raise ValueError("No hay restaurantes para realizar la comparacion de texto.")
+
+    if not restaurante_texto.get("tipo_comida"):
+        raise ValueError("No hay restaurantes con tipo_comida para la comparacion multikey.")
 
     query_email = {"email": usuario["email"]}
     compare_index(
@@ -249,12 +262,34 @@ def presentacion_indices(db: Database) -> None:
         "idx_ordenes_restaurante_estado",
     )
 
+    query_ordenes_activas = {
+        "estado": {"$in": ["pendiente", "confirmado", "en_preparacion", "en_camino", "entregado"]},
+        "fecha_pedido": {"$gte": fecha_inicio},
+    }
+    compare_index(
+        "6) Indice parcial: ordenes activas por estado + fecha_pedido",
+        db.ordenes,
+        query_ordenes_activas,
+        query_ordenes_activas,
+        "idx_ordenes_activas_parcial",
+    )
+
+    tipo_comida = restaurante_texto["tipo_comida"][0]
+    query_multikey = {"tipo_comida": tipo_comida}
+    compare_index(
+        "7) Indice multikey: restaurantes.tipo_comida",
+        db.restaurantes,
+        query_multikey,
+        query_multikey,
+        "idx_restaurantes_tipo_comida_multikey",
+    )
+
     query_resena_comp = {
         "restaurante_id": resena["restaurante_id"],
         "calificacion_general": resena["calificacion_general"],
     }
     compare_index(
-        "6) Indice compuesto: resenas.restaurante_id + calificacion_general",
+        "8) Indice compuesto: resenas.restaurante_id + calificacion_general",
         db.resenas,
         query_resena_comp,
         query_resena_comp,
@@ -271,7 +306,7 @@ def presentacion_indices(db: Database) -> None:
         }
     }
     compare_index(
-        "7) Indice geoespacial: restaurantes.ubicacion",
+        "9) Indice geoespacial: restaurantes.ubicacion",
         db.restaurantes,
         query_geo,
         query_geo,
@@ -287,7 +322,7 @@ def presentacion_indices(db: Database) -> None:
         ]
     }
     compare_index(
-        "8) Indice de texto: resenas.titulo + comentario",
+        "10) Indice de texto: resenas.titulo + comentario",
         db.resenas,
         regex_query_resena,
         text_query_resena,
@@ -308,7 +343,7 @@ def presentacion_indices(db: Database) -> None:
         ]
     }
     compare_index(
-        "9) Indice de texto: restaurantes.nombre + descripcion + tipo_comida",
+        "11) Indice de texto: restaurantes.nombre + descripcion + tipo_comida",
         db.restaurantes,
         regex_query_rest,
         text_query_rest,
