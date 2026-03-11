@@ -8,6 +8,9 @@ Aplicacion fullstack para gestionar restaurantes, menu, ordenes, usuarios y rese
 - Anggelie Lizeth Velasquez Asencio - 221181
 - Mia Alejandra Fuentes Merida - 23775
 
+## Video de presentación
+[Ver en YouTube](https://youtu.be/dKtafEZ9slo)
+
 ## Stack
 - Backend: FastAPI, PyMongo, Python
 - Base de datos: MongoDB Atlas
