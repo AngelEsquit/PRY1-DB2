@@ -37,6 +37,7 @@ from crud.update import (
     desactivar_usuarios_inactivos,
     aplicar_descuento_por_categoria,
     marcar_ordenes_anticuadas,
+    actualizar_direccion_restaurante,
 )
 from crud.delete import (
     eliminar_resena,
@@ -641,7 +642,8 @@ def crud_update_menu(db):
         "4": "Actualizar precio de artículo",
         "5": "Desactivar usuarios inactivos",
         "6": "Aplicar descuento por categoría",
-        "7": "Marcar órdenes antiguas",
+        "7": "Actualizar dirección de restaurante",
+        "8": "Marcar órdenes antiguas",
     }
 
     while True:
@@ -718,6 +720,21 @@ def crud_update_menu(db):
                 pausar()
 
             elif op == "7":
+                print(actualizar_direccion_restaurante(
+                    pedir_objectid(
+                        "ID del restaurante",
+                        "64f123abc456def789012345",
+                        db=db,
+                        coleccion_sugerida="restaurantes",
+                    ),
+                    pedir_texto("Nueva calle", "5a avenida 10-25, Zona 10"),
+                    pedir_texto("Nueva ciudad", "Guatemala"),
+                    pedir_texto("Nuevo código postal", "01010"),
+                    db=db
+                ))
+                pausar()
+
+            elif op == "8":
                 print(marcar_ordenes_anticuadas(db=db))
                 pausar()
 

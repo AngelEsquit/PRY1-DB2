@@ -123,3 +123,29 @@ def marcar_ordenes_anticuadas(db: Optional[Database] = None) -> int:
         {"$set": {"estado": "archivada"}},
     )
     return result.modified_count
+
+
+def actualizar_direccion_restaurante(
+    restaurante_id: Any,
+    calle: str,
+    ciudad: str,
+    codigo_postal: str,
+    db: Optional[Database] = None,
+) -> int:
+    """
+    Actualiza la dirección embebida de un restaurante.
+    """
+    db = resolve_db(db)
+    rest_oid = to_object_id(restaurante_id, "restaurante_id")
+    
+    nueva_direccion = {
+        "calle": calle,
+        "ciudad": ciudad,
+        "codigo_postal": codigo_postal,
+    }
+    
+    result = db.restaurantes.update_one(
+        {"_id": rest_oid},
+        {"$set": {"direccion": nueva_direccion}}
+    )
+    return result.modified_count
