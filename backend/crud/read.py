@@ -17,11 +17,18 @@ def buscar_restaurantes_por_nombre(nombre: str, db: Optional[Database] = None) -
     return list(db.restaurantes.find({"nombre": {"$regex": nombre, "$options": "i"}}))
 
 
-def buscar_usuarios_por_tipo(tipo: str, db: Optional[Database] = None) -> List[Dict[str, Any]]:
+def buscar_usuarios_por_tipo(
+    tipo: str,
+    skip: int = 0,
+    limit: int = 200,
+    db: Optional[Database] = None,
+) -> List[Dict[str, Any]]:
     db = resolve_db(db)
     if tipo not in VALID_USER_TYPES:
         raise ValueError("tipo debe ser regular, premium o vip")
-    return list(db.usuarios.find({"tipo": tipo}))
+    skip_value = max(0, int(skip))
+    limit_value = max(1, int(limit))
+    return list(db.usuarios.find({"tipo": tipo}).skip(skip_value).limit(limit_value))
 
 
 def buscar_ordenes_por_estado(estado: str, db: Optional[Database] = None) -> List[Dict[str, Any]]:
@@ -74,9 +81,17 @@ def ordenes_mas_recientes(limite: int = 10, db: Optional[Database] = None) -> Li
     return list(db.ordenes.find().sort("fecha_pedido", DESCENDING).limit(int(limite)))
 
 
-def restaurantes_por_nombre_ascendente(db: Optional[Database] = None) -> List[Dict[str, Any]]:
+def restaurantes_por_nombre_ascendente(
+    skip: int = 0,
+    limit: int = 50,
+    sort_dir: int = 1,
+    db: Optional[Database] = None,
+) -> List[Dict[str, Any]]:
     db = resolve_db(db)
-    return list(db.restaurantes.find().sort("nombre", ASCENDING))
+    skip_value = max(0, int(skip))
+    limit_value = max(1, int(limit))
+    sort_direction = 1 if sort_dir >= 0 else -1
+    return list(db.restaurantes.find().sort("nombre", sort_direction).skip(skip_value).limit(limit_value))
 
 
 def mejores_calificaciones(limite: int = 10, db: Optional[Database] = None) -> List[Dict[str, Any]]:

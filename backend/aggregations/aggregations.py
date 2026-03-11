@@ -394,3 +394,37 @@ def promedio_gasto_por_usuario(limite=10):
     ]
 
     return list(db.ordenes.aggregate(pipeline))
+
+
+def usuarios_activos_por_tipo():
+    """
+    Cuenta cantidad de usuarios activos agrupados por tipo (regular, premium, vip).
+    Agrupa por tipo y suma los activos.
+    """
+    pipeline = [
+        {
+            "$match": {
+                "activo": True
+            }
+        },
+        {
+            "$group": {
+                "_id": "$tipo",
+                "cantidad": {"$sum": 1}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "tipo": "$_id",
+                "cantidad_activos": "$cantidad"
+            }
+        },
+        {
+            "$sort": {
+                "tipo": 1
+            }
+        }
+    ]
+    
+    return list(db.usuarios.aggregate(pipeline))

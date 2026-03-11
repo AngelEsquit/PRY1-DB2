@@ -16,8 +16,8 @@ def get_users(
     tipo: str | None = None,
     sort_by: str = Query("nombre"),
     sort_dir: int = Query(1),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(200, ge=1, le=500),
+    skip: int = Query(0, ge=0, description="Cantidad de usuarios a omitir (paginacion)."),
+    limit: int = Query(200, ge=1, le=500, description="Cantidad maxima de usuarios a devolver."),
 ):
     filtro = {}
     if tipo:

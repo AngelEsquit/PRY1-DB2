@@ -53,6 +53,7 @@ from aggregations.aggregations import (
     horas_pico_restaurante,
     ventas_por_restaurante,
     promedio_gasto_por_usuario,
+    usuarios_activos_por_tipo,
 )
 from arrays.arrays import (
     agregar_preferencia_usuario,
@@ -477,6 +478,8 @@ def crud_read_menu(db):
             elif op == "3":
                 print(buscar_usuarios_por_tipo(
                     pedir_texto("Tipo de usuario", "vip"),
+                    skip=pedir_entero("Skip (usuarios a omitir)", minimo=0, ejemplo="0"),
+                    limit=pedir_entero("Limit (máximo de usuarios)", minimo=1, ejemplo="20"),
                     db=db
                 ))
                 pausar()
@@ -536,7 +539,12 @@ def crud_read_menu(db):
                 pausar()
 
             elif op == "11":
-                print(restaurantes_por_nombre_ascendente(db=db))
+                print(restaurantes_por_nombre_ascendente(
+                    skip=pedir_entero("Skip (restaurantes a omitir)", minimo=0, ejemplo="0"),
+                    limit=pedir_entero("Limit (máximo de restaurantes)", minimo=1, ejemplo="10"),
+                    sort_dir=pedir_entero("Dirección: 1=Ascendente, -1=Descendente", minimo=-1, maximo=1, ejemplo="1"),
+                    db=db
+                ))
                 pausar()
 
             elif op == "12":
@@ -812,6 +820,7 @@ def aggregations_menu(db):
         "3": "Horas pico de restaurante",
         "4": "Ventas por restaurante",
         "5": "Promedio de gasto por usuario",
+        "6": "Usuarios activos por tipo",
     }
 
     while True:
@@ -852,6 +861,10 @@ def aggregations_menu(db):
                 print(promedio_gasto_por_usuario(
                     pedir_entero("Cantidad de usuarios a mostrar", minimo=1, ejemplo="5")
                 ))
+                pausar()
+
+            elif op == "6":
+                print(usuarios_activos_por_tipo())
                 pausar()
 
             elif op == "0":
