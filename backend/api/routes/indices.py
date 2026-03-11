@@ -34,7 +34,13 @@ def _compare(
     if isinstance(base, (int, float)) and base > 0 and isinstance(comp, (int, float)) and comp >= 0:
         mejora = round(((base - comp) / base) * 100, 2)
     else:
-        mejora = None
+        # Fallback cuando el tiempo es 0ms (común por caché o muestras pequeñas)
+        docs_base = no_idx.get("docs_examined")
+        docs_comp = with_idx.get("docs_examined")
+        if isinstance(docs_base, (int, float)) and docs_base > 0 and isinstance(docs_comp, (int, float)) and docs_comp >= 0:
+            mejora = round(((docs_base - docs_comp) / docs_base) * 100, 2)
+        else:
+            mejora = None
     return {
         "label": label,
         "sin_indice": no_idx,
@@ -113,7 +119,31 @@ def get_index_comparison():
             db.restaurantes, q_geo, q_geo, "idx_restaurantes_ubicacion_geo",
         ))
 
-        # 8) Text index: resenas
+        # 8) Multikey: restaurantes.tipo_comida
+        tipos = restaurante.get("tipo_comida") or []
+        rare_tipo_doc = next(
+            db.restaurantes.aggregate(
+                [
+                    {"$unwind": "$tipo_comida"},
+                    {"$group": {"_id": "$tipo_comida", "count": {"$sum": 1}}},
+                    {"$sort": {"count": 1}},
+                    {"$limit": 1},
+                ]
+            ),
+            None,
+        )
+        tipo_multikey = (
+            rare_tipo_doc.get("_id")
+            if rare_tipo_doc and rare_tipo_doc.get("_id")
+            else (tipos[0] if tipos else "Comida")
+        )
+        q_mk = {"tipo_comida": tipo_multikey}
+        results.append(_compare(
+            "8. Índice multikey: restaurantes.tipo_comida",
+            db.restaurantes, q_mk, q_mk, "idx_restaurantes_tipo_comida_multikey",
+        ))
+
+        # 9) Text index: resenas
         term_r = extract_search_term(
             f"{resena.get('titulo', '')} {resena.get('comentario', '')}"
         )
@@ -125,12 +155,11 @@ def get_index_comparison():
         }
         q_r_with = {"$text": {"$search": term_r}}
         results.append(_compare(
-            "8. Índice de texto: resenas.titulo + comentario",
+            "9. Índice de texto: resenas.titulo + comentario",
             db.resenas, q_r_no, q_r_with, "idx_resenas_texto",
         ))
 
-        # 9) Text index: restaurantes
-        tipos = restaurante.get("tipo_comida") or []
+        # 10) Text index: restaurantes
         tipo_token = tipos[0] if tipos else "Comida"
         term_rest = extract_search_term(
             f"{restaurante.get('nombre', '')} {restaurante.get('descripcion', '')} {tipo_token}"
@@ -144,7 +173,7 @@ def get_index_comparison():
         }
         q_rest_with = {"$text": {"$search": term_rest}}
         results.append(_compare(
-            "9. Índice de texto: restaurantes.nombre + descripcion + tipo_comida",
+            "10. Índice de texto: restaurantes.nombre + descripcion + tipo_comida",
             db.restaurantes, q_rest_no, q_rest_with, "idx_restaurantes_texto",
         ))
 

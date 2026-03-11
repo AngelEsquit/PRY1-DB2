@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from bson import ObjectId
 from bson.decimal128 import Decimal128
 
-from crud.common import db
+from crud.common import db, ensure_indexed_query
 from crud.create import crear_restaurante, crear_articulo_menu
 from crud.update import actualizar_telefono_restaurante, actualizar_precio_articulo
 from crud.delete import eliminar_articulo_menu
@@ -18,10 +18,26 @@ def serialize_decimal(value):
 
 
 @router.get("/")
-def get_restaurants():
+def get_restaurants(
+    tipo_comida: str | None = None,
+    ciudad: str | None = None,
+    sort_by: str = Query("nombre"),
+    sort_dir: int = Query(1),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+):
+    filtro = {}
+    if tipo_comida:
+        filtro["tipo_comida"] = tipo_comida
+    if ciudad:
+        filtro["direccion.ciudad"] = ciudad
+
+    ensure_indexed_query(db.restaurantes, filtro)
+
+    sort_direction = 1 if sort_dir >= 0 else -1
     restaurantes = list(
         db.restaurantes.find(
-            {},
+            filtro,
             {
                 "nombre": 1,
                 "descripcion": 1,
@@ -30,7 +46,7 @@ def get_restaurants():
                 "telefono": 1,
                 "email": 1,
             },
-        ).limit(50)
+        ).sort(sort_by, sort_direction).skip(skip).limit(limit)
     )
 
     resultado = []
@@ -201,87 +217,3 @@ def delete_menu_item(item_id: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    restaurantes = list(
-        db.restaurantes.find(
-            {},
-            {
-                "nombre": 1,
-                "descripcion": 1,
-                "tipo_comida": 1,
-                "direccion": 1,
-                "telefono": 1,
-                "email": 1,
-            },
-        ).limit(50)
-    )
-
-    resultado = []
-    for r in restaurantes:
-        resultado.append(
-            {
-                "_id": str(r.get("_id")),
-                "nombre": r.get("nombre"),
-                "descripcion": r.get("descripcion"),
-                "tipo_comida": r.get("tipo_comida", []),
-                "direccion": r.get("direccion", {}),
-                "telefono": r.get("telefono"),
-                "email": r.get("email"),
-            }
-        )
-
-    return resultado
-
-
-@router.get("/{restaurant_id}")
-def get_restaurant_detail(restaurant_id: str):
-    try:
-        oid = ObjectId(restaurant_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="ID de restaurante inválido")
-
-    restaurante = db.restaurantes.find_one({"_id": oid})
-
-    if not restaurante:
-        raise HTTPException(status_code=404, detail="Restaurante no encontrado")
-
-    articulos = list(
-        db.articulos_menu.find(
-            {"restaurante_id": oid},
-            {
-                "_id": 1,
-                "nombre": 1,
-                "descripcion": 1,
-                "categoria": 1,
-                "precio": 1,
-                "disponible": 1,
-                "restaurante_id": 1,
-            },
-        )
-    )
-
-    menu = []
-    for a in articulos:
-        menu.append(
-            {
-                "_id": str(a.get("_id")),
-                "restaurante_id": str(a.get("restaurante_id")) if a.get("restaurante_id") else None,
-                "nombre": a.get("nombre"),
-                "descripcion": a.get("descripcion"),
-                "categoria": a.get("categoria"),
-                "precio": serialize_decimal(a.get("precio")),
-                "disponible": a.get("disponible", True),
-            }
-        )
-
-    resultado = {
-        "_id": str(restaurante.get("_id")),
-        "nombre": restaurante.get("nombre"),
-        "descripcion": restaurante.get("descripcion"),
-        "tipo_comida": restaurante.get("tipo_comida", []),
-        "direccion": restaurante.get("direccion", {}),
-        "telefono": restaurante.get("telefono"),
-        "email": restaurante.get("email"),
-        "menu": menu,
-    }
-
-    return resultado

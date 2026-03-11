@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from bson import ObjectId
 
-from crud.common import db
+from crud.common import db, ensure_indexed_query
 from crud.update import cambiar_estado_orden
 from transactions.transactions import crear_orden_y_actualizar_puntos
 from api.schemas import OrderCreate, UpdateStatusRequest
@@ -10,10 +10,18 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 @router.get("/")
-def get_orders(estado: str | None = None):
+def get_orders(
+    estado: str | None = None,
+    sort_by: str = Query("fecha_pedido"),
+    sort_dir: int = Query(-1),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+):
     filtro = {}
     if estado:
         filtro["estado"] = estado
+    ensure_indexed_query(db.ordenes, filtro)
+    sort_direction = 1 if sort_dir >= 0 else -1
     ordenes = list(
         db.ordenes.find(
             filtro,
@@ -24,7 +32,7 @@ def get_orders(estado: str | None = None):
                 "fecha_pedido": 1,
                 "total": 1,
             },
-        ).sort("fecha_pedido", -1).limit(50)
+        ).sort(sort_by, sort_direction).skip(skip).limit(limit)
     )
 
     for o in ordenes:
@@ -122,3 +130,16 @@ def update_order_status(order_id: str, payload: UpdateStatusRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{order_id}")
+def delete_order(order_id: str):
+    try:
+        oid = ObjectId(order_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID de orden inválido")
+
+    result = db.ordenes.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    return {"message": "Orden eliminada", "deleted": result.deleted_count}

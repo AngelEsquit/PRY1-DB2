@@ -1,7 +1,7 @@
 import os
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from dotenv import load_dotenv
 
 from bson import Decimal128, ObjectId
@@ -38,6 +38,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", DEFAULT_DB_NAME)
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB_NAME]
+INDEX_ENFORCEMENT_ENABLED = os.getenv("ENFORCE_INDEX_USAGE", "false").lower() == "true"
 
 
 def load_dotenv_file(path: str = str(ENV_PATH)) -> None:
@@ -101,3 +102,57 @@ def to_decimal(value: Any) -> Decimal:
     if isinstance(value, Decimal):
         return value
     return Decimal(str(value))
+
+
+def _plan_has_collscan(plan: Dict[str, Any]) -> bool:
+    if not isinstance(plan, dict):
+        return False
+
+    if plan.get("stage") == "COLLSCAN":
+        return True
+
+    for key in ["inputStage", "outerStage", "innerStage", "queryPlan", "winningPlan"]:
+        if key in plan and _plan_has_collscan(plan[key]):
+            return True
+
+    for key in ["shards", "inputStages", "children"]:
+        value = plan.get(key)
+        if isinstance(value, list):
+            for entry in value:
+                if _plan_has_collscan(entry):
+                    return True
+
+    return False
+
+
+def ensure_indexed_query(collection, filter_query: Optional[Dict[str, Any]] = None) -> None:
+    """
+    Rechaza consultas con COLLSCAN cuando ENFORCE_INDEX_USAGE está activo.
+    Para evitar bloquear listados base, no valida filtros vacíos.
+    """
+    if not INDEX_ENFORCEMENT_ENABLED:
+        return
+
+    if not filter_query:
+        return
+
+    explain_doc = collection.database.command(
+        "explain",
+        {"find": collection.name, "filter": filter_query},
+        verbosity="queryPlanner",
+    )
+    winning_plan = explain_doc.get("queryPlanner", {}).get("winningPlan", {})
+    if _plan_has_collscan(winning_plan):
+        raise ValueError(
+            "Consulta rechazada: no se está usando índice (COLLSCAN detectado)."
+        )
+
+
+def set_index_enforcement(enabled: bool) -> bool:
+    global INDEX_ENFORCEMENT_ENABLED
+    INDEX_ENFORCEMENT_ENABLED = bool(enabled)
+    return INDEX_ENFORCEMENT_ENABLED
+
+
+def get_index_enforcement() -> bool:
+    return INDEX_ENFORCEMENT_ENABLED

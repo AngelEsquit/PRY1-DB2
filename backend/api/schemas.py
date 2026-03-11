@@ -10,6 +10,12 @@ class ReviewCreate(BaseModel):
     comentario: str
 
 
+class ReviewUpdate(BaseModel):
+    calificacion: int = Field(ge=1, le=5)
+    titulo: str
+    comentario: str
+
+
 class OrderItemCreate(BaseModel):
     articulo_id: str
     cantidad: int = Field(ge=1)

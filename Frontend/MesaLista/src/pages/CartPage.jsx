@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
 import { createOrder, fetchUsers } from "../services/api";
 
 function CartPage() {
+  const navigate = useNavigate();
   const {
     cartItems,
     removeFromCart,
@@ -30,6 +32,12 @@ function CartPage() {
 
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (!usuarioId && users.length > 0) {
+      setUsuarioId(users[0]._id);
+    }
+  }, [users, usuarioId]);
 
   const handleConfirmOrder = async () => {
     if (cartItems.length === 0) {
@@ -95,6 +103,9 @@ function CartPage() {
           <div className="empty-cart">
             <h3>Tu carrito está vacío</h3>
             <p>Agrega productos desde el detalle del restaurante.</p>
+            <button className="btn btn-primary" onClick={() => navigate("/restaurants")}>
+              Ir a restaurantes
+            </button>
           </div>
         ) : (
           <>
@@ -140,6 +151,9 @@ function CartPage() {
 
             <div className="cart-summary">
               <h3>Resumen</h3>
+              <p className="cart-help-text">
+                Paso final: verifica usuario, método de pago y luego presiona "Crear Orden".
+              </p>
 
               <label className="cart-label">Usuario</label>
               <select
@@ -173,7 +187,7 @@ function CartPage() {
                 onClick={handleConfirmOrder}
                 disabled={loading}
               >
-                {loading ? "Creando orden..." : "Confirmar Orden"}
+                {loading ? "Creando orden..." : "Crear Orden"}
               </button>
             </div>
           </>

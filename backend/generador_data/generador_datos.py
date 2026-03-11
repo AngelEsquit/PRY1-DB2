@@ -251,6 +251,12 @@ def create_indexes(db: Database) -> None:
 		[("nombre", TEXT), ("descripcion", TEXT), ("tipo_comida", TEXT)],
 		name="idx_restaurantes_texto",
 	)
+	with_retries(
+		"index restaurantes tipo_comida multikey",
+		db.restaurantes.create_index,
+		[("tipo_comida", ASCENDING)],
+		name="idx_restaurantes_tipo_comida_multikey",
+	)
 
 	with_retries(
 		"index usuarios email unique",

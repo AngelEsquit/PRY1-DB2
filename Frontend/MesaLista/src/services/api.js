@@ -14,8 +14,16 @@ async function handleResponse(res, defaultMessage) {
   return res.json();
 }
 
-export async function fetchRestaurants() {
-  const res = await fetch(`${API_URL}/restaurants/`);
+export async function fetchRestaurants({ tipo_comida, ciudad, sort_by, sort_dir, skip, limit } = {}) {
+  const params = new URLSearchParams();
+  if (tipo_comida) params.set("tipo_comida", tipo_comida);
+  if (ciudad) params.set("ciudad", ciudad);
+  if (sort_by) params.set("sort_by", sort_by);
+  if (sort_dir !== undefined) params.set("sort_dir", String(sort_dir));
+  if (skip !== undefined) params.set("skip", String(skip));
+  if (limit !== undefined) params.set("limit", String(limit));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_URL}/restaurants/${suffix}`);
   return handleResponse(res, "Error al obtener restaurantes");
 }
 
@@ -24,8 +32,15 @@ export async function fetchRestaurantDetail(id) {
   return handleResponse(res, "Error al obtener detalle del restaurante");
 }
 
-export async function fetchOrders() {
-  const res = await fetch(`${API_URL}/orders/`);
+export async function fetchOrders({ estado, sort_by, sort_dir, skip, limit } = {}) {
+  const params = new URLSearchParams();
+  if (estado) params.set("estado", estado);
+  if (sort_by) params.set("sort_by", sort_by);
+  if (sort_dir !== undefined) params.set("sort_dir", String(sort_dir));
+  if (skip !== undefined) params.set("skip", String(skip));
+  if (limit !== undefined) params.set("limit", String(limit));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_URL}/orders/${suffix}`);
   return handleResponse(res, "Error al obtener órdenes");
 }
 
@@ -34,8 +49,17 @@ export async function fetchOrderDetail(id) {
   return handleResponse(res, "Error al obtener detalle de la orden");
 }
 
-export async function fetchReviews() {
-  const res = await fetch(`${API_URL}/reviews/`);
+export async function fetchReviews({ restaurante_id, min_calificacion, max_calificacion, sort_by, sort_dir, skip, limit } = {}) {
+  const params = new URLSearchParams();
+  if (restaurante_id) params.set("restaurante_id", restaurante_id);
+  if (min_calificacion !== undefined) params.set("min_calificacion", String(min_calificacion));
+  if (max_calificacion !== undefined) params.set("max_calificacion", String(max_calificacion));
+  if (sort_by) params.set("sort_by", sort_by);
+  if (sort_dir !== undefined) params.set("sort_dir", String(sort_dir));
+  if (skip !== undefined) params.set("skip", String(skip));
+  if (limit !== undefined) params.set("limit", String(limit));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_URL}/reviews/${suffix}`);
   return handleResponse(res, "Error al obtener reseñas");
 }
 
@@ -184,6 +208,15 @@ export async function deleteReview(id) {
   return handleResponse(res, "Error al eliminar reseña");
 }
 
+export async function updateReview(id, data) {
+  const res = await fetch(`${API_URL}/reviews/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res, "Error al actualizar reseña");
+}
+
 export async function updateOrderStatus(id, nuevo_estado) {
   const res = await fetch(`${API_URL}/orders/${id}/status`, {
     method: "PATCH",
@@ -191,6 +224,11 @@ export async function updateOrderStatus(id, nuevo_estado) {
     body: JSON.stringify({ nuevo_estado }),
   });
   return handleResponse(res, "Error al cambiar estado de la orden");
+}
+
+export async function deleteOrder(id) {
+  const res = await fetch(`${API_URL}/orders/${id}`, { method: "DELETE" });
+  return handleResponse(res, "Error al eliminar orden");
 }
 
 // ── Admin Bulk Operations ─────────────────────────────────────────

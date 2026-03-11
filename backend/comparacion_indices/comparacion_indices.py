@@ -136,6 +136,7 @@ def presentacion_indices(db: Database) -> None:
         "resenas": "idx_resenas_restaurante_calificacion",
         "resenas_texto": "idx_resenas_texto",
         "restaurantes": "idx_restaurantes_ubicacion_geo",
+        "restaurantes_multikey": "idx_restaurantes_tipo_comida_multikey",
         "restaurantes_texto": "idx_restaurantes_texto",
     }
 
@@ -148,6 +149,7 @@ def presentacion_indices(db: Database) -> None:
         "resenas": "resenas",
         "resenas_texto": "resenas",
         "restaurantes": "restaurantes",
+        "restaurantes_multikey": "restaurantes",
         "restaurantes_texto": "restaurantes",
     }
 
@@ -278,6 +280,32 @@ def presentacion_indices(db: Database) -> None:
         "idx_restaurantes_ubicacion_geo",
     )
 
+    rare_tipo_doc = next(
+        db.restaurantes.aggregate(
+            [
+                {"$unwind": "$tipo_comida"},
+                {"$group": {"_id": "$tipo_comida", "count": {"$sum": 1}}},
+                {"$sort": {"count": 1}},
+                {"$limit": 1},
+            ]
+        ),
+        None,
+    )
+    tipos_disponibles = restaurante_texto.get("tipo_comida") or []
+    tipo_multikey = (
+        rare_tipo_doc.get("_id")
+        if rare_tipo_doc and rare_tipo_doc.get("_id")
+        else (tipos_disponibles[0] if tipos_disponibles else "Comida")
+    )
+    query_multikey = {"tipo_comida": tipo_multikey}
+    compare_index(
+        "8) Indice multikey: restaurantes.tipo_comida",
+        db.restaurantes,
+        query_multikey,
+        query_multikey,
+        "idx_restaurantes_tipo_comida_multikey",
+    )
+
     term_resena = extract_search_term(f"{resena.get('titulo', '')} {resena.get('comentario', '')}")
     text_query_resena = {"$text": {"$search": term_resena}}
     regex_query_resena = {
@@ -287,7 +315,7 @@ def presentacion_indices(db: Database) -> None:
         ]
     }
     compare_index(
-        "8) Indice de texto: resenas.titulo + comentario",
+        "9) Indice de texto: resenas.titulo + comentario",
         db.resenas,
         regex_query_resena,
         text_query_resena,
@@ -308,7 +336,7 @@ def presentacion_indices(db: Database) -> None:
         ]
     }
     compare_index(
-        "9) Indice de texto: restaurantes.nombre + descripcion + tipo_comida",
+        "10) Indice de texto: restaurantes.nombre + descripcion + tipo_comida",
         db.restaurantes,
         regex_query_rest,
         text_query_rest,

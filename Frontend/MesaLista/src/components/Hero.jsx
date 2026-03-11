@@ -22,7 +22,7 @@ function Hero() {
               className="btn btn-light"
               onClick={() => navigate("/cart")}
             >
-              Crear Orden
+              Ir al carrito
             </button>
           </div>
         </div>

@@ -102,7 +102,7 @@ function Navbar() {
           </button>
 
           <button className="btn btn-primary" onClick={() => navigate("/cart")}>
-            Crear Orden
+            Ir al carrito
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from bson import ObjectId
 
-from crud.common import db
+from crud.common import db, ensure_indexed_query
 from crud.create import crear_usuario
 from crud.update import actualizar_email_usuario
 from crud.delete import eliminar_usuario
@@ -12,10 +12,18 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/")
-def get_users(tipo: str | None = None):
+def get_users(
+    tipo: str | None = None,
+    sort_by: str = Query("nombre"),
+    sort_dir: int = Query(1),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=500),
+):
     filtro = {}
     if tipo:
         filtro["tipo"] = tipo
+    ensure_indexed_query(db.usuarios, filtro)
+    sort_direction = 1 if sort_dir >= 0 else -1
     usuarios = list(
         db.usuarios.find(
             filtro,
@@ -27,7 +35,7 @@ def get_users(tipo: str | None = None):
                 "puntos": 1,
                 "activo": 1,
             },
-        ).limit(200)
+        ).sort(sort_by, sort_direction).skip(skip).limit(limit)
     )
 
     resultado = []

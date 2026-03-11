@@ -11,6 +11,7 @@ from crud.delete import (
     eliminar_usuarios_inactivos,
     limpiar_ordenes_canceladas,
 )
+from crud.common import client, set_index_enforcement, get_index_enforcement
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -18,6 +19,10 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 class DiscountPayload(BaseModel):
     categoria: str
     porcentaje_descuento: float
+
+
+class IndexEnforcementPayload(BaseModel):
+    enabled: bool
 
 
 @router.post("/deactivate-inactive-users")
@@ -75,3 +80,35 @@ def clean_cancelled_orders():
         return {"message": f"{count} orden(es) canceladas eliminadas", "deleted": count}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/index-enforcement")
+def get_index_enforcement_status():
+    return {
+        "app_enforcement_enabled": get_index_enforcement(),
+        "note": "La política de app bloquea consultas con COLLSCAN cuando hay filtro.",
+    }
+
+
+@router.post("/index-enforcement")
+def set_index_enforcement_status(payload: IndexEnforcementPayload):
+    app_flag = set_index_enforcement(payload.enabled)
+    db_result = {"applied": False, "message": None}
+
+    # Intento opcional de enforcement a nivel servidor (puede fallar en Atlas por permisos).
+    try:
+        if payload.enabled:
+            client.admin.command({"setParameter": 1, "notablescan": True})
+        else:
+            client.admin.command({"setParameter": 1, "notablescan": False})
+        db_result = {"applied": True, "message": "setParameter notablescan aplicado"}
+    except Exception as exc:
+        db_result = {
+            "applied": False,
+            "message": f"No se pudo aplicar notablescan a nivel servidor: {exc}",
+        }
+
+    return {
+        "app_enforcement_enabled": app_flag,
+        "db_enforcement": db_result,
+    }

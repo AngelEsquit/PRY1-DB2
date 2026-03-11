@@ -67,7 +67,7 @@ export default function Indices() {
       {loading && (
         <div className="loading-overlay">
           <div className="loading-spinner" />
-          <p>Ejecutando 9 comparaciones en la base de datos…</p>
+          <p>Ejecutando 10 comparaciones en la base de datos…</p>
         </div>
       )}
 
